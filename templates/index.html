@@ -1,0 +1,170 @@
+{% extends 'layouts/app.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 card shadow-lg p-5 rounded border-0 bg-white" id="todo-container">
+            
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {% for message in messages %}
+                    <strong>{{ message }}</strong>
+                    {% endfor %}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endif %}
+            {% endwith %}
+
+            <h2 class="text-center text-dark mb-4 font-weight-bold">Todo List with Flask</h2>
+            
+            <div class="mb-3 text-center">
+                <button id="theme-toggle" class="btn btn-light border-dark mx-1" onclick="toggleTheme()">☀️</button>
+            </div>
+
+            <form action="{{ url_for('index', todo_id=todo.id) if todo else url_for('index') }}" method="POST">
+                <div class="input-group mb-4">
+                    <input type="text" name="title" class="form-control task-input shadow-sm" placeholder="Enter a new task..." value="{{ todo.title if todo else '' }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-dark shadow-sm animated-btn" type="submit">Save Task</button>
+                    </div>
+                </div>
+            </form>
+
+            <ul class="list-group list-group-flush" id="task-list">
+                {% for todo in todos %}
+                <li class="list-group-item d-flex justify-content-between align-items-center bg-light rounded mb-2 shadow-sm transition task-item" draggable="true" ondragstart="dragStart(event)" ondragover="allowDrop(event)" ondrop="drop(event)">
+                    <span class="text-dark font-weight-medium">{{ todo.title }}</span>
+                    <span>
+                        <a href="/{{ todo.id }}" class="btn btn-outline-secondary btn-sm shadow-sm animated-btn">Edit</a>
+                        <form class="d-inline" method="POST" action="{{ url_for('delete', todo_id=todo.id) }}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm shadow-sm delete-btn">Delete</button>
+                        </form>
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition:hover {
+        transform: scale(1.02);
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .animated-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .task-item {
+        opacity: 0;
+        transform: translateY(10px);
+        animation: fadeIn 0.5s forwards;
+        cursor: grab;
+    }
+    
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .task-input {
+        border-radius: 10px;
+        border: none;
+        box-shadow: inset 3px 3px 8px #ccc, inset -3px -3px 8px #fff;
+        padding: 10px;
+        transition: all 0.3s ease-in-out;
+    }
+    
+    .task-input:focus {
+        outline: none;
+        box-shadow: inset 2px 2px 5px #bbb, inset -2px -2px 5px #fff;
+    }
+    
+    /* Themes */
+    .light-theme {
+        background: #f8f9fa;
+        color: #212529;
+    }
+    .dark-theme {
+        background-color: #0d0d0d;
+        color: #e0e0e0;
+    }
+    .dark-theme .card { background-color: #252525; color: white; }
+    
+    /* Apply theme to entire page */
+    .dark-theme body {
+        background-color: #121212;
+        color: #e0e0e0;
+        transition: background 0.5s ease-in-out, color 0.5s ease-in-out;
+    }
+    .light-theme body {
+        background-color: #ffffff;
+        color: #212529;
+        transition: background 0.5s ease-in-out, color 0.5s ease-in-out;
+    }
+</style>
+
+<script>
+    function toggleTheme() {
+        let body = document.body;
+        let container = document.getElementById("todo-container");
+        let themeToggle = document.getElementById("theme-toggle");
+        
+        if (body.classList.contains("dark-theme")) {
+            body.classList.remove("dark-theme");
+            container.classList.remove("dark-theme");
+            body.classList.add("light-theme");
+            container.classList.add("light-theme");
+            themeToggle.innerText = "☀️";
+            localStorage.setItem("theme", "light");
+        } else {
+            body.classList.remove("light-theme");
+            container.classList.remove("light-theme");
+            body.classList.add("dark-theme");
+            container.classList.add("dark-theme");
+            themeToggle.innerText = "🌙";
+            localStorage.setItem("theme", "dark");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem("theme");
+        if (savedTheme) {
+            let body = document.body;
+            let container = document.getElementById("todo-container");
+            let themeToggle = document.getElementById("theme-toggle");
+            
+            body.classList.add(savedTheme + "-theme");
+            container.classList.add(savedTheme + "-theme");
+            themeToggle.innerText = savedTheme === "dark" ? "🌙" : "☀️";
+        }
+    });
+
+    function dragStart(event) {
+        event.dataTransfer.setData("text", event.target.outerHTML);
+        event.target.classList.add("dragging");
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function drop(event) {
+        event.preventDefault();
+        let data = event.dataTransfer.getData("text");
+        event.target.closest("ul").insertAdjacentHTML("beforeend", data);
+        document.querySelector(".dragging").remove();
+    }
+</script>
+
+{% endblock %}
